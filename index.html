@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FraudShield|Cyber Avista</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+     :root {
+      --primary: #0b4f8a;
+      --accent: #f57c00;
+      --danger: #ef5350;
+      --warning: #fbc02d;
+      --success: #4caf50;
+      --glass: rgba(255, 255, 255, 0.95);
+      --shadow: 0 10px 30px rgba(0,0,0,0.1);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Poppins', sans-serif; background: #f0f4f8; overflow-x: hidden; color: #333; }
+
+    #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); }
+
+    header { background: var(--glass); backdrop-filter: blur(10px); border-bottom: 3px solid var(--primary); position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+
+    .logo-section { display: flex; align-items: center; gap: 10px; }
+    .logo-section img { cursor: pointer; transition: 0.3s; }
+    .logo-section img:active { transform: scale(0.9); }
+
+    #langSelect { padding: 6px 10px; border-radius: 20px; border: 2px solid var(--primary); font-weight: 600; cursor: pointer; width: auto; min-width: 110px; font-size: 13px; }
+
+    .menu-toggle { display: none; background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 18px; }
+
+    /* Navigation */
+    .tab-container { max-width: 900px;  margin: 30px auto;  padding: 0 15px; }
+    .tab-list { display: flex; justify-content: center; gap: 10px; background: rgba(11, 79, 138, 0.15); padding: 8px; border-radius: 60px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
+    .tab { padding: 12px 30px; border-radius: 50px; border: none; cursor: pointer; font-weight: 700; background: transparent; color: #0b4f8a; font-size: 15px; transition: all 0.4s ease;}
+    .tab.active { background: #0b4f8a; color: #fff; box-shadow: 0 8px 20px rgba(11, 79, 138, 0.3); transform: scale(1.05); }
+    .tab:hover:not(.active) { background: rgba(11, 79, 138, 0.1);}
+
+    /* Panels */
+    .tab-panel { max-width: 1200px; margin: 0 auto 40px; padding: 20px; display: none; opacity: 0; transform: translateY(20px); }
+    .active-panel { display: block; }
+
+    .card { background: var(--glass); border-radius: var(--radius); padding: 25px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.5); height: 100%; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+    /* --- YouTube Style Layout for Tips Section --- */
+    #tips .youtube-container {
+      display: grid;
+      grid-template-columns: 1fr 350px; 
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    #tips .main-player {
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 100px;
+    }
+
+    #tips .main-player video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      display: block;
+    }
+
+    #tips .video-description {
+      padding: 15px;
+      background: #fff;
+      color: #333;
+    }
+
+    #tips .video-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    #tips .side-item {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 10px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+
+    #tips .side-item:hover {
+      background: rgba(11, 79, 138, 0.1);
+    }
+
+    #tips .side-item video {
+      width: 100%;
+      border-radius: 8px;
+      pointer-events: none;
+    }
+
+    #tips .side-info h4 {
+      margin: 0;
+      font-size: 14px;
+      color: #333;
+      line-height: 1.2;
+    }
+
+    #tips .side-info p {
+      margin: 5px 0 0;
+      font-size: 12px;
+      color: #666;
+    }
+
+    #tips .video-list::-webkit-scrollbar { width: 5px; }
+    #tips .video-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+
+    @media (max-width: 992px) {
+      #tips .youtube-container { grid-template-columns: 1fr; }
+      #tips .main-player { position: relative; top: 0; }
+    }
+
+    input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; font-family: inherit; }
+    .btn-primary { background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; transition: 0.3s; }
+    
+    #report .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+
+    #report .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      border: 1px solid #e0e0e0;
+    }
+
+    #report h3 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #333;
+    }
+
+    #report label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0b4f8a;
+      margin-bottom: 8px;
+      margin-top: 15px;
+    }
+
+    #report input, #report select, #report textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      background-color: #ffffff;
+      transition: border-color 0.3s;
+    }
+
+    #report .btn-primary {
+      background-color: #ef5350;
+      color: white;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 25px;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #report .btn-primary:hover {
+      background-color: #d32f2f;
+    }
+
+    #reportList {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      padding-top: 50px;
+    }
+
+    @media (max-width: 768px) {
+      #report .grid { grid-template-columns: 1fr; }
+    }
+
+    #gujaratMap { height: 500px; border-radius: var(--radius); width: 100%; z-index: 1; }
+
+    @media (max-width: 768px) {
+      .menu-toggle { display: block; }
+      .tab-container { 
+        position: fixed; top: 0; left: -100%; width: 260px; height: 100vh; 
+        background: var(--glass); backdrop-filter: blur(15px); margin: 0; 
+        padding: 80px 20px 20px; z-index: 999; transition: 0.4s ease-in-out; 
+      }
+      .tab-container.active { left: 0; }
+      .tab-list { flex-direction: column; background: transparent; padding: 0; border: none; }
+      .tab { width: 100%; text-align: left; padding: 15px 20px; border-radius: 12px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* AI Chat Styling */
+    #chatBox { display: flex; flex-direction: column; gap: 10px; }
+    .bot-msg { align-self: flex-start; background: #eee; padding: 10px; border-radius: 12px 12px 12px 0; font-size: 14px; max-width: 80%; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .user-msg { align-self: flex-end; background: var(--primary); color: white; padding: 10px; border-radius: 12px 12px 0 12px; font-size: 14px; max-width: 80%; }
+    .opt-btn { border: 1px solid var(--primary); background: white; color: var(--primary); padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+    .opt-btn:hover { background: var(--primary); color: white; }
+
+  </style>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <header>
+    <div class="container">
+      <div class="logo-section">
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230b4f8a'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'/></svg>" width="30" ondblclick="openAdmin()">
+        <h1 id="nav-title" style="margin:0; font-size: 18px; color: var(--primary);">FraudShield|Cyber Avista</h1>
+      </div>
+      <select id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="en" selected>English</option>
+        <option value="gu">ગુજરાતી</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </div>
+  </header>
+
+  <nav class="tab-container" id="mobileMenu">
+    <div class="tab-list">
+      <button class="tab active" data-lang="t1" onclick="showTab(this, 'checker')">Checker</button>
+      <button class="tab" data-lang="t2" onclick="showTab(this, 'tips')">Media Tips</button>
+      <button class="tab" data-lang="t3" onclick="showTab(this, 'map')">Heatmap</button>
+      <button class="tab" data-lang="t4" onclick="showTab(this, 'report')">Report</button>
+      <button class="tab" data-lang="t5" onclick="showTab(this, 'chat')">AI Bot</button>
+    </div>
+  </nav>
+
+  <main onclick="closeMenu()">
+    <section id="checker" class="tab-panel active-panel" style="opacity: 1; transform: translateY(0);">
+      <div class="grid">
+        <div class="card">
+          <h2 data-lang="c_h2">🔍 Scam Search</h2>
+          <input type="text" id="mainInput" data-ph="p_target" placeholder="Number or link">
+          <button class="btn-primary" data-lang="b1" onclick="runCheck()">Verify Safety</button>
+          <div id="checkResult" style="margin-top:15px; font-weight: 700;"></div>
+        </div>
+        <div class="card" style="background: var(--primary); color: white;">
+          <h3 data-lang="w_h3">Stay Alert!</h3>
+          <p data-lang="w_p">Never share your OTP or Bank Details.</p>
+        </div>
+      </div>
+    </section>
+
+<section id="tips" class="tab-panel">
+  <div class="youtube-container">
+    <div class="main-player">
+      <video id="mainVid" controls autoplay muted loop>
+        <source src="videos/1.mp4" type="video/mp4">
+      </video>
+      <div class="video-description">
+        <h3 id="mainTitle" data-lang="v1">Digital Arrest Scam</h3>
+        <p style="font-size: 14px; color: #666;"> FraudShield India • 2026</p>
+      </div>
+    </div>
+
+    <div class="video-list">
+      <div class="side-item" onclick="changeMainVid('videos/1.mp4', 'Digital Arrest Scam')">
+        <video muted><source src="videos/1.mp4"></video>
+        <div class="side-info">
+          <h4 data-lang="v1">Digital Arrest Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/2.mp4', 'Lottery Scam')">
+        <video muted><source src="videos/2.mp4"></video>
+        <div class="side-info">
+          <h4>Lottery Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/3.mp4', 'Investment Scam')">
+        <video muted><source src="videos/3.mp4"></video>
+        <div class="side-info">
+          <h4>Investment Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/4.mp4', 'Kyc Scam')">
+        <video muted><source src="videos/4.mp4"></video>
+        <div class="side-info">
+          <h4>Kyc Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/5.mp4', 'UPI PIN Scam')">
+        <video muted><source src="videos/5.mp4"></video>
+        <div class="side-info">
+          <h4>UPI PIN Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/6.mp4', 'QR Code Scam')">
+        <video muted><source src="videos/6.mp4"></video>
+        <div class="side-info">
+          <h4>QR Code Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/7.mp4', 'Bank Account Block Scam')">
+        <video muted><source src="videos/7.mp4"></video>
+        <div class="side-info">
+          <h4>Bank Account Block Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/8.mp4', 'Fake link Scam')">
+        <video muted><source src="videos/8.mp4"></video>
+        <div class="side-info">
+          <h4>Fake link Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/9.mp4', 'Fake Investment App Scam')">
+        <video muted><source src="videos/9.mp4"></video>
+        <div class="side-info">
+          <h4>Fake Investment App Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/10.mp4', 'Cyber Awareness')">
+        <video muted><source src="videos/10.mp4"></video>
+        <div class="side-info">
+          <h4>Cyber Awareness</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/11.mp4', 'Free Tips Scam')">
+        <video muted><source src="videos/11.mp4"></video>
+        <div class="side-info">
+          <h4>Free Tips Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/12.mp4', 'OTP Scam')">
+        <video muted><source src="videos/12.mp4"></video>
+        <div class="side-info">
+          <h4>OTP Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+
+      <div class="side-item" onclick="changeMainVid('videos/13.mp4', 'Creadit Card Scam')">
+        <video muted><source src="videos/13.mp4"></video>
+        <div class="side-info">
+          <h4>Creadit Card Scam</h4>
+          <p>FraudShield India</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+    <section id="map" class="tab-panel">
+      <div class="card">
+        <h3 data-lang="t3">Heatmap</h3>
+        <div id="gujaratMap"></div>
+      </div>
+    </section>
+
+    <section id="report" class="tab-panel">
+      <div class="grid">
+        <div class="card">
+          <h3 data-lang="r_h3">📩 Submit New Report</h3>
+          <label data-lang="l_name">User Name</label>
+          <input type="text" id="uName" data-ph="p_name" placeholder="Enter name">
+          <label data-lang="l_email">Email ID</label>
+          <input type="email" id="uEmail" data-ph="p_email" placeholder="Enter email">
+          <label data-lang="l_target">Fraud Number/Link</label>
+          <input type="text" id="fTarget" data-ph="p_target" placeholder="Number or link">
+          <label data-lang="l_type">Fraud Type</label>
+          <select id="fType">
+            <option value="" data-lang="opt_def">Select Type</option>
+            <option value="UPI Scam">UPI Scam</option>
+            <option value="Fake Call">Fake Call</option>
+            <option value="Other">Other</option>
+          </select>
+          <label data-lang="l_loc">Location</label>
+          <select id="fLocation">
+  <option value="">Select City</option>
+  <option>Ahmedabad</option>
+  <option>Surat</option>
+  <option>Rajkot</option>
+  <option>Vadodara</option>
+  <option>Mumbai</option>
+  <option>Delhi</option>
+  <option>Bangalore</option>
+  <option>Hyderabad</option>
+  <option>Chennai</option>
+  <option>Kolkata</option>
+  <option>Pune</option>
+  <option>Jaipur</option>
+</select>
+          <label data-lang="l_desc">Description</label>
+          <textarea id="fDesc" rows="4" data-ph="p_desc" placeholder="Details..."></textarea>
+          <button class="btn-primary" data-lang="r_btn" onclick="submitReport()">Submit Report</button>
+        </div>
+
+        <div class="card">
+          <h3 data-lang="r_list">📋 Recent Reports</h3>
+          <div id="reportList"><p id="emptyMsg" data-lang="no_rep">No reports yet.</p></div>
+        </div>
+      </div>
+      <div id="adminSection" class="card" style="margin-top: 30px; border: 2px dashed #0b4f8a; background: #f0f7ff; display: none;">
+        <h3 style="color: #0b4f8a;">🛠 Developer Control Panel</h3>
+        <div id="adminQueue"></div>
+      </div>
+    </section>
+
+<section id="chat" class="tab-panel">
+  <div class="card" style="max-width:600px;margin:auto;height:520px;display:flex;flex-direction:column;">
+    
+    <h3>🤖 FraudShield AI</h3>
+
+    <!-- Language -->
+    <select id="langSelect" onchange="changeLang(this.value)" style="margin-bottom:10px;">
+      <option value="en">English</option>
+      <option value="gu">Gujarati</option>
+      <option value="hi">Hindi</option>
+    </select>
+
+    <!-- Chat -->
+    <div id="chatBox" style="flex:1;overflow-y:auto;background:#f9f9f9;padding:10px;border-radius:10px;"></div>
+
+    <!-- Options -->
+    <div id="quickOptions" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;"></div>
+
+    <!-- Input -->
+
+  </div>
+</section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    
+/* ================= GLOBAL & DATA ================= */
+let reportsDb = { en: [], gu: [], hi: [] };
+let pendingDb = { en: [], gu: [], hi: [] };
+let currentAppLang = "en";
+let fraudDatabase = [
+  { target: "9876543210", location: "Ahmedabad" },
+  { target: "9123456780", location: "Surat" },
+  { target: "9988776655", location: "Rajkot" },
+  { target: "9000011111", location: "Ahmedabad" },
+  { target: "9000022222", location: "Surat" },
+  { target: "9000033333", location: "Vadodara" },
+  { target: "9000044444", location: "Rajkot" },
+  { target: "9000055555", location: "Bhavnagar" },
+  { target: "9000066666", location: "Jamnagar" },
+  { target: "9000077777", location: "Gandhinagar" },
+
+  { target: "8111111111", location: "Ahmedabad" },
+  { target: "8222222222", location: "Surat" },
+  { target: "8333333333", location: "Rajkot" },
+  { target: "8444444444", location: "Vadodara" },
+  { target: "8555555555", location: "Bhavnagar" },
+  { target: "8666666666", location: "Jamnagar" },
+  { target: "8777777777", location: "Gandhinagar" },
+  { target: "8888888888", location: "Ahmedabad" },
+  { target: "8999999999", location: "Surat" },
+  { target: "8000000000", location: "Rajkot" },
+
+  { target: "7011111111", location: "Ahmedabad" },
+  { target: "7022222222", location: "Surat" },
+  { target: "7033333333", location: "Rajkot" },
+  { target: "7044444444", location: "Vadodara" },
+  { target: "7055555555", location: "Bhavnagar" },
+  { target: "7066666666", location: "Jamnagar" },
+  { target: "7077777777", location: "Gandhinagar" },
+  { target: "7088888888", location: "Ahmedabad" },
+  { target: "7099999999", location: "Surat" },
+  { target: "7000000000", location: "Rajkot" },
+
+  { target: "6011111111", location: "Ahmedabad" },
+  { target: "6022222222", location: "Surat" },
+  { target: "6033333333", location: "Rajkot" },
+  { target: "6044444444", location: "Vadodara" },
+  { target: "6055555555", location: "Bhavnagar" },
+  { target: "6066666666", location: "Jamnagar" },
+  { target: "6077777777", location: "Gandhinagar" },
+  { target: "6088888888", location: "Ahmedabad" },
+  { target: "6099999999", location: "Surat" },
+  { target: "6000000000", location: "Rajkot" },
+
+  { target: "5011111111", location: "Ahmedabad" },
+  { target: "5022222222", location: "Surat" },
+  { target: "5033333333", location: "Rajkot" },
+  { target: "5044444444", location: "Vadodara" },
+  { target: "5055555555", location: "Bhavnagar" },
+  { target: "5066666666", location: "Jamnagar" },
+  { target: "5077777777", location: "Gandhinagar" },
+  { target: "5088888888", location: "Ahmedabad" },
+  { target: "5099999999", location: "Surat" },
+  { target: "5000000000", location: "Rajkot" }
+];
+
+const langData = {
+  en: {
+    t1:"Checker", t2:"Media Tips", t3:"Heatmap", t4:"Report", t5:"AI Bot",
+    c_h2:"🔍 Scam Search", b1:"Verify", w_h3:"Stay Alert!", w_p:"No OTP Sharing!",
+    r_h3:"📨 Submit Report", r_btn:"Submit", r_list:"Approved Reports",
+    r_msg_sent:"Report submitted successfully!", no_rep:"No reports yet.",
+    p_name:"Name", p_email:"Email ID", p_target:"Number/Link", p_loc:"Location", p_desc:"Details",
+    b_h3:"Support Bot", s_btn:"Send",
+    l_name:"User Name", l_email:"Email ID", l_target:"Fraud Number/Link", l_type:"Fraud Type", l_loc:"Location", l_desc:"Description",
+    ai_welcome: "Hello! I am FraudShield AI. How can I help you?",
+    ai_options: ["All Scams", "Safety Tips", "Emergency Numbers"],
+    ai_scam_list: "Select a scam to learn more:",
+    ai_scams: ["UPI Scam", "Digital Arrest", "Lottery Scam"],
+    ai_advice: {
+      "UPI Scam": "Never enter your PIN to 'receive' money. Use 1930 for help.",
+      "Digital Arrest": "Police never arrest over Video Calls. It's a scam!",
+      "Lottery Scam": "Don't pay any 'tax' or 'fees' for prizes you didn't enter."
+    }
+  },
+  gu: {
+    t1:"ચેકર", t2:"મીડિયા ટિપ્સ", t3:"નકશો", t4:"રિપોર્ટ", t5:"બોટ મદદ",
+    c_h2:"🔍 તપાસ કરો", b1:"ચકાસણી", w_h3:"સાવધાન!", w_p:"OTP આપશો નહીં!",
+    r_h3:"રિપોર્ટ ઉમેરો", r_btn:"મોકલો", r_list:"મંજૂર થયેલા રિપોર્ટ્સ",
+    r_msg_sent:"રિપોર્ટ સફળતાપૂર્વક મોકલાયો!", no_rep:"રિપોર્ટ નથી.",
+    p_name:"નામ", p_email:"ઈમેઈલ આઈડી", p_target:"નંબર/લિંક", p_loc:"સ્થળ", p_desc:"વિગત",
+    b_h3:"બોટ મદદ", s_btn:"મોકલો",
+    l_name:"વપરાશકર્તાનું નામ", l_email:"ઈમેઈલ આઈડી", l_target:"ફ્રોડ નંબર/લિંક", l_type:"ફ્રોડનો પ્રકાર", l_loc:"સ્થળ", l_desc:"વર્ણન",
+    ai_welcome: "નમસ્તે! હું FraudShield AI છું. હું તમારી શું મદદ કરી શકું?",
+    ai_options: ["બધા સ્કેમ", "સુરક્ષા ટિપ્સ", "ઇમરજન્સી નંબર"],
+    ai_scam_list: "વધુ જાણવા માટે સ્કેમ પસંદ કરો:",
+    ai_scams: ["UPI ફ્રોડ", "ડિજિટલ અરેસ્ટ", "લોટરી સ્કેમ"],
+    ai_advice: {
+      "UPI ફ્રોડ": "પૈસા 'મેળવવા' માટે ક્યારેય PIN નાખશો નહીં. મદદ માટે 1930 ડાયલ કરો.",
+      "ડિજિટલ અરેસ્ટ": "પોલીસ ક્યારેય વીડિયો કોલ પર ધરપકડ નથી કરતી. આ ફ્રોડ છે!",
+      "લોટરી સ્કેમ": "લોટરીના નામે એડવાન્સમાં ટેક્સ કે ફી આપશો નહીં."
+    }
+  },
+  hi: {
+    t1:"चेकर", t2:"मीडिया टिप्स", t3:"नक्शा", t4:"रिपोर्ट", t5:"बोट सहायता",
+    c_h2:"🔍 जांच करें", b1:"सत्यापन", w_h3:"सतर्क रहें!", w_p:"OTP साझा न करें!",
+    r_h3:"रिपोर्ट दर्ज करें", r_btn:"भेजें", r_list:"हालिया रिपोर्ट",
+    r_msg_sent:"रिपोर्ट सफलतापूर्वक भेजी गई!", no_rep:"कोई रिपोर्ट नहीं।",
+    p_name:"नाम", p_email:"ईमेल आईडी", p_target:"नंबर/लिंक", p_loc:"स्थान", p_desc:"विवरण",
+    b_h3:"सहायता बोट", s_btn:"भेजें",
+    l_name:"उपयोगकर्ता का नाम", l_email:"ईमेल आईडी", l_target:"फ्रॉड नंबर/लिंक", l_type:"फ्रॉड का प्रकार", l_loc:"स्थान", l_desc:"विवरण",
+    ai_welcome: "नमस्ते! मैं FraudShield AI हूँ। मैं आपकी क्या मदद कर सकता हूँ?",
+    ai_options: ["सभी घोटाले", "सुरक्षा टिप्स", "इमरजेंसी नंबर"],
+    ai_scam_list: "अधिक जानने के लिए घोटाला चुनें:",
+    ai_scams: ["UPI फ्रॉड", "डिजिटल अरेस्ट", "लॉटरी स्कैम"],
+    ai_advice: {
+      "UPI फ्रॉड": "पैसे 'प्राप्त' करने के लिए कभी PIN न डालें। 1930 पर कॉल करें।",
+      "डिजिटल अरेस्ट": "पुलिस कभी वीडियो कॉल पर गिरफ्तारी नहीं करती। यह फर्जी है!",
+      "लॉटरी स्कैम": "किसी भी इनाम के लिए एडवांस में पैसे न दें।"
+    }
+  }
+};
+
+/* ================= UTILS ================= */
+function toggleMenu() { document.getElementById("mobileMenu").classList.toggle("active"); }
+function closeMenu() { document.getElementById("mobileMenu").classList.remove("active"); }
+
+function changeLanguage(lang){
+  currentAppLang = lang;
+  document.querySelectorAll("[data-lang]").forEach(el=>{
+    const key = el.getAttribute("data-lang");
+    if(langData[lang][key]) el.innerText = langData[lang][key];
+  });
+  document.querySelectorAll("[data-ph]").forEach(el=>{
+    const key = el.getAttribute("data-ph");
+    if(langData[lang][key]) el.setAttribute("placeholder", langData[lang][key]);
+  });
+  renderApprovedList();
+  updateAdminQueue();
+  initAI(); // Reset AI on lang change
+}
+
+function showTab(btn,id){
+  closeMenu();
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  btn.classList.add("active");
+  const current=document.querySelector(".active-panel");
+  const target=document.getElementById(id);
+  gsap.to(current,{ opacity:0, y:10, duration:0.2, onComplete:()=>{
+    current.classList.remove("active-panel");
+    target.classList.add("active-panel");
+    gsap.fromTo(target,{opacity:0,y:20},{opacity:1,y:0,duration:0.4});
+  }});
+  if(id==="map") setTimeout(()=>map.invalidateSize(),400);
+}
+
+/* ================= MAP ================= */
+/* ================= MAP ================= */
+
+const streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+const satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}");
+
+const indiaBounds = L.latLngBounds(L.latLng(6,68),L.latLng(36,98));
+
+const map = L.map("gujaratMap").setView([22.9,78.6],5);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+/* city coords */
+const coords = {
+  Ahmedabad:[23.0225,72.5714],
+  Surat:[21.1702,72.8311],
+  Rajkot:[22.3039,70.8022],
+  Vadodara:[22.3072,73.1812],
+
+  Mumbai:[19.0760,72.8777],
+  Delhi:[28.7041,77.1025],
+  Bangalore:[12.9716,77.5946],
+  Hyderabad:[17.3850,78.4867],
+  Chennai:[13.0827,80.2707],
+  Kolkata:[22.5726,88.3639],
+  Pune:[18.5204,73.8567],
+  Jaipur:[26.9124,75.7873]
+};
+
+let reportMarkers = [];
+
+/* show marker */
+function showFraudOnMap(location){
+
+  if(!coords[location]) return;
+
+  const exist = reportMarkers.find(m=>{
+    const latlng = m.getLatLng();
+    return latlng.lat === coords[location][0] && latlng.lng === coords[location][1];
+  });
+
+  if(exist) return;
+
+  const marker = L.marker(coords[location])
+    .addTo(map)
+    .bindPopup("⚠️ Fraud Reported: "+location);
+
+  reportMarkers.push(marker);
+}
+
+/* load all reports */
+function loadAllReportsOnMap(){
+  reportMarkers.forEach(m=>map.removeLayer(m));
+  reportMarkers=[];
+
+  reportsDb[currentAppLang].forEach(r=>{
+    if(r.location) showFraudOnMap(r.location);
+  });
+}
+
+/* ================= LOGIC ================= */
+function runCheck(){
+  const input = document.getElementById("mainInput").value.trim();
+  const result = document.getElementById("checkResult");
+  if(!input){ result.innerHTML = "⚠️ Please enter number or link"; return; }
+ const found = fraudDatabase.find(f => input.includes(f.target));
+  if(found){ result.innerHTML = "🚨 Fraud Reported from " + found.location; result.style.color = "red"; showFraudOnMap(found.location); }
+  else { result.innerHTML = "✅ Safe (No reports found)"; result.style.color = "green"; }
+}
+
+function submitReport(){
+  const name=document.getElementById("uName").value.trim();
+  const target=document.getElementById("fTarget").value.trim();
+  const desc=document.getElementById("fDesc").value.trim();
+  const location=document.getElementById("fLocation").value;
+
+  if(!name || !target || !desc || !location){
+    alert("Please fill all fields");
+    return;
+  }
+
+  const report={
+    id:Date.now(),
+    name,
+    target,
+    desc,
+    location,
+    date:new Date().toLocaleDateString()
+  };
+
+  pendingDb[currentAppLang].push(report);
+
+  alert("Report submitted!");
+
+  // 🔥 MAP PAR DIRECT SHOW
+  showFraudOnMap(location);
+
+  updateAdminQueue();
+}
+
+function approveReport(id){
+  const idx = pendingDb[currentAppLang].findIndex(r => r.id === id);
+  if(idx === -1) return;
+
+  const report = pendingDb[currentAppLang].splice(idx,1)[0];
+  reportsDb[currentAppLang].push(report);
+
+  /* 🔥 ADD TO DATABASE (NO DUPLICATE) */
+  if (!fraudDatabase.find(f => f.target === report.target)) {
+    fraudDatabase.push({
+      target: report.target,
+      location: report.location || "Unknown"
+    });
+if(report.location){
+  showFraudOnMap(report.location);
+}
+  }
+
+  updateAdminQueue();
+  renderApprovedList();
+}
+
+function renderApprovedList(){
+  const listEl=document.getElementById("reportList");
+  const list=reportsDb[currentAppLang];
+  if(list.length===0){ listEl.innerHTML="<p>No reports yet.</p>"; return; }
+  listEl.innerHTML = list.map(r=>`<div style="border-bottom:1px solid #ddd; padding:10px;"><b>${r.target}</b><br>${r.desc}<br><small>${r.location} - ${r.date}</small></div>`).join('');
+}
+
+function updateAdminQueue(){
+  const qEl=document.getElementById("adminQueue");
+  if(!qEl) return;
+  const list=pendingDb[currentAppLang];
+  qEl.innerHTML = list.length===0 ? "<p>No pending reports</p>" : list.map(r=>`<div style="border:1px solid #ddd; padding:10px; margin-bottom:5px;"><b>${r.target}</b><br><button onclick="approveReport(${r.id})">Approve</button></div>`).join('');
+}
+
+function openAdmin(){ if(prompt("Enter Admin Password:")==="admin123"){ document.getElementById("adminSection").style.display="block"; alert("Admin Access Granted!"); } }
+function changeMainVid(src,title){ const v=document.getElementById("mainVid"); v.src=src; v.play(); document.getElementById("mainTitle").innerText=title; }
+
+const API_KEY = "YOUR_API_KEY_HERE"; // 🔑 add your key
+let currentLang = "en";
+
+const chatBox = document.getElementById("chatBox");
+const quickOptions = document.getElementById("quickOptions");
+
+/* ================= LANGUAGE ================= */
+const langText = {
+  en: {
+    welcome: "Hello 👋 I am FraudShield AI. How can I help?",
+    options: ["UPI Scam","OTP Scam","Fake Call","Lottery Scam"]
+  },
+  gu: {
+    welcome: "નમસ્તે 👋 હું FraudShield AI છું. શું મદદ જોઈએ?",
+    options: ["UPI Scam","OTP Scam","Fake Call","Lottery Scam"]
+  },
+  hi: {
+    welcome: "नमस्ते 👋 मैं FraudShield AI हूँ। क्या मदद चाहिए?",
+    options: ["UPI Scam","OTP Scam","Fake Call","Lottery Scam"]
+  }
+};
+
+/* ================= SCAM DATA ================= */
+const scamData = {
+  en: {
+    UPI: `🚨 IMMEDIATE ACTION
+
+1. Call bank immediately
+2. Call 1930
+3. Report cybercrime.gov.in
+
+Never share OTP/PIN`,
+
+    OTP: `🚨 OTP Scam
+
+Never share OTP
+Change password immediately`,
+
+    CALL: `🚨 Fake Call
+
+Do not share details`,
+
+    LOTTERY: `🚨 Lottery Scam
+
+Do not pay money`
+  },
+
+  gu: {
+    UPI: `🚨 તરત આ કરો
+
+1. બેંક ને call કરો
+2. 1930 call કરો
+3. cybercrime.gov.in report કરો
+
+OTP/PIN share ના કરો`,
+
+    OTP: `🚨 OTP ફ્રોડ
+
+OTP કોઈને ના આપો`,
+
+    CALL: `🚨 ફેક કોલ
+
+ડિટેલ્સ આપશો નહીં`,
+
+    LOTTERY: `🚨 લોટરી સ્કેમ
+
+પૈસા ના આપો`
+  },
+
+  hi: {
+    UPI: `🚨 तुरंत ये करें
+
+1. बैंक कॉल करें
+2. 1930 कॉल करें
+3. cybercrime.gov.in रिपोर्ट करें
+
+OTP/PIN शेयर ना करें`,
+
+    OTP: `🚨 OTP फ्रॉड
+
+OTP शेयर ना करें`,
+
+    CALL: `🚨 फेक कॉल
+
+डिटेल्स मत दो`,
+
+    LOTTERY: `🚨 लॉटरी स्कैम
+
+पैसे मत दो`
+  }
+};
+
+/* ================= KEY MAP ================= */
+const keyMap = {
+  "UPI Scam":"UPI",
+  "OTP Scam":"OTP",
+  "Fake Call":"CALL",
+  "Lottery Scam":"LOTTERY"
+};
+
+/* ================= INIT ================= */
+function initAI(){
+  chatBox.innerHTML="";
+  botMsg(langText[currentLang].welcome);
+  showOptions(langText[currentLang].options);
+}
+
+/* ================= MESSAGE ================= */
+function botMsg(text){
+  const div=document.createElement("div");
+  div.className="bot-msg";
+  div.innerText=text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+function userMsg(text){
+  const div=document.createElement("div");
+  div.className="user-msg";
+  div.innerText=text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* ================= OPTIONS ================= */
+function showOptions(opts){
+  quickOptions.innerHTML="";
+  opts.forEach(opt=>{
+    const btn=document.createElement("button");
+    btn.className="opt-btn";
+    btn.innerText=opt;
+    btn.onclick=()=>handleOption(opt);
+    quickOptions.appendChild(btn);
+  });
+}
+
+/* ================= OPTION CLICK ================= */
+function handleOption(opt){
+  userMsg(opt);
+
+  const key = keyMap[opt];
+
+  typingReply(scamData[currentLang][key]);
+}
+
+/* ================= TYPING ================= */
+function typingReply(text){
+  const div=document.createElement("div");
+  div.className="bot-msg";
+  chatBox.appendChild(div);
+
+  let i=0;
+  function type(){
+    if(i<text.length){
+      div.innerHTML+=text.charAt(i);
+      i++;
+      chatBox.scrollTop=chatBox.scrollHeight;
+      setTimeout(type,10);
+    }
+  }
+  type();
+}
+
+/* ================= REAL AI ================= */
+async function sendMsg(){
+  const input=document.getElementById("chatInput");
+  const text=input.value.trim();
+  if(!text) return;
+
+  userMsg(text);
+  input.value="";
+
+  const loading=document.createElement("div");
+  loading.className="bot-msg";
+  loading.innerText="Typing...";
+  chatBox.appendChild(loading);
+
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        contents:[{
+          parts:[{
+            text:`Reply in Gujarati + Hindi + English. Give cyber fraud guidance.
+
+User: ${text}`
+          }]
+        }]
+      })
+    });
+
+    const data=await res.json();
+    chatBox.removeChild(loading);
+
+    const reply=data.candidates?.[0]?.content?.parts?.[0]?.text || "Try again";
+
+    typingReply(reply);
+
+  }catch(err){
+    chatBox.removeChild(loading);
+    botMsg("❌ Error");
+  }
+}
+
+/* ================= LANGUAGE ================= */
+function changeLang(lang){
+  currentLang = lang;
+  initAI();
+}
+
+/* ENTER KEY */
+document.getElementById("chatInput").addEventListener("keypress",e=>{
+  if(e.key==="Enter") sendMsg();
+});
+
+/* START */
+window.onload=initAI;
+
+/* ================= START ================= */
+changeLanguage("en");
+
+  </script>
+</body>
+</html>
